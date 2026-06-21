@@ -19,9 +19,12 @@ Melike Kahraman - Scrum Master
 # Ürün Açıklaması
 Projemiz,özellikle genç kullanıcılara yönelik kişiselleştirilmiş bir finansal okuryazarlık ve yatırım bilgilendirme asistanı geliştirmeyi hedeflemektedir. 
 
+
 Kullanıcılar yaş, gelir durumu, risk toleransı ve finansal hedeflerini sisteme girerek kendilerine özel, eğitici içerikler ve örnek portföy dağılım senaryoları alacaklardır. 
 
+
 Yapay zeka destekli sistem, güncel piyasa verilerini ve finansal haberleri analiz ederek bu bilgileri sade ve anlaşılır bir dille kullanıcıya sunacak, böylece yatırım konusunda bilgi eksikliği olan bireylerin daha bilinçli kararlar almasına destek olacaktır. 
+
 
 Ürün, doğrudan yatırım tavsiyesi vermek yerine eğitici ve bilgilendirici bir yaklaşım benimseyerek finansal farkındalığı artırmayı amaçlamaktadır.
 
@@ -38,8 +41,11 @@ Yatırım tavsiyesi vermeden, kullanıcıların finansal konularda bilinçlenmes
 # Hedef Kitle
 18–35 yaş arası gençler ve genç profesyoneller
 
+
 Finansal okuryazarlık seviyesini geliştirmek isteyen bireyler
 
+
 Yatırıma yeni başlayan veya yatırım konusunda bilgi eksikliği yaşayan kullanıcılar
+
 
 Gelirini birikim ve yatırım yoluyla değerlendirmek isteyen kişiler
