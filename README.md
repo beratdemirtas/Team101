@@ -3,9 +3,13 @@ Team101
 
 # Takım Üyeleri
 Fatımanur Kantar - Product Owner
+
 Berat Muhammet Demirtaş - Developer
+
 Melike Kahraman - Scrum Master
+
 Özlem Kılıç - Developer
+
 İbrahim Emin İpek - Developer
 
 # Ürün Açıklaması
