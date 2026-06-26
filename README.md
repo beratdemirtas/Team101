@@ -1,56 +1,74 @@
-# Takım İsmi
-Team101
+# 📈 Team101
 
-# Takım Üyeleri
-Fatımanur Kantar - Product Owner
+## Takım Üyeleri
 
+- Fatımanur Kantar – Product Owner  
+- Özlem Kılıç – Scrum Master  
+- Berat Muhammet Demirtaş – Developer  
+- Melike Kahraman – Developer  
+- İbrahim Emin İpek – Developer  
 
-Berat Muhammet Demirtaş - Developer
+---
 
+## Ürün Açıklaması
 
-Melike Kahraman - Scrum Master
+Bu proje, özellikle genç kullanıcılara yönelik geliştirilen yapay zekâ destekli bir finansal okuryazarlık ve yatırım bilgilendirme platformudur.
 
+Platform, kullanıcıların finansal farkındalıklarını artırmayı ve borsa hakkında bilinçli kararlar alabilmelerini desteklemeyi amaçlamaktadır.
 
-Özlem Kılıç - Developer
+Kullanıcılar sanal bakiye ile borsa simülasyonu yaparak gerçek para riski olmadan alım-satım deneyimi kazanabilir. Ayrıca yapay zekâ destekli chatbot ve güncel finansal haberler sayesinde piyasa gelişmeleri takip edilebilir ve finansal konularda bilgi edinilebilir.
 
+Ürün, yatırım tavsiyesi sunmak yerine bilgilendirici ve yönlendirici bir yaklaşım benimseyerek finansal okuryazarlığın gelişmesine katkı sağlamayı hedeflemektedir.
 
-İbrahim Emin İpek - Developer
+---
 
-# Ürün Açıklaması
-Projemiz,özellikle genç kullanıcılara yönelik kişiselleştirilmiş bir finansal okuryazarlık ve yatırım bilgilendirme asistanı geliştirmeyi hedeflemektedir. Kullanıcılar yaş, gelir durumu, risk toleransı ve finansal hedeflerini sisteme girerek kendilerine özel, eğitici içerikler ve örnek portföy dağılım senaryoları alacaklardır. Yapay zeka destekli sistem, güncel piyasa verilerini ve finansal haberleri analiz ederek bu bilgileri sade ve anlaşılır bir dille kullanıcıya sunacak, böylece yatırım konusunda bilgi eksikliği olan bireylerin daha bilinçli kararlar almasına destek olacaktır. Ürün, doğrudan yatırım tavsiyesi vermek yerine eğitici ve bilgilendirici bir yaklaşım benimseyerek finansal farkındalığı artırmayı amaçlamaktadır.
+## Ürün Özellikleri
 
-# Ürün Özellikleri
-Kişiselleştirilmiş Finansal Eğitim İçerikleri
+💰 Sanal Borsa Simülasyonu  
+- Sanal bakiye ile alım-satım işlemleri yapılabilir  
+- Gerçek para riski olmadan yatırım deneyimi kazanılır  
 
+🤖 Yapay Zekâ Destekli Chatbot  
+- Finansal konularda kullanıcı sorularını yanıtlar  
+- Bilgilendirici ve yönlendirici destek sağlar  
 
-Kullanıcının yaş, gelir durumu, risk toleransı ve hedeflerine göre özel finansal okuryazarlık içerikleri sunar.
+📰 Piyasa ve Haber Takibi  
+- Güncel borsa haberleri görüntülenir  
+- API aracılığıyla finansal gelişmeler takip edilir  
 
+📊 Dashboard  
+- Kullanıcı bakiye ve işlem geçmişi görüntülenir  
+- Tüm modüllere tek ekrandan erişim sağlanır  
 
-Örnek Portföy Dağılım Senaryoları
+👤 Kullanıcı Profili  
+- Kullanıcı bilgileri ve hesap ayarları yönetilir  
 
+---
 
-Kullanıcı profiline uygun, eğitim amaçlı örnek yatırım ve portföy dağılımı senaryoları oluşturur.
+## Planlanan Sayfalar
 
+- Dashboard  
+- Borsa Simülasyonu  
+- Haberler  
+- Chatbot  
+- Profil  
 
-Yapay Zeka Destekli Piyasa ve Haber Analizi
+---
 
+## Kullanılacak Teknolojiler
 
-Güncel finansal haberleri ve piyasa gelişmelerini analiz ederek sade ve anlaşılır özetler sunar.
+- GitHub  
+- Trello  
+- Figma  
+- Yapay Zekâ API'leri  
+- Finansal Veri API'leri  
 
+---
 
-Bilgilendirici ve Farkındalık Odaklı Rehberlik
+## Hedef Kitle
 
-
-Yatırım tavsiyesi vermeden, kullanıcıların finansal konularda bilinçlenmesini ve doğru karar alma becerilerini geliştirmesini destekler.
-
-# Hedef Kitle
-18–35 yaş arası gençler ve genç profesyoneller
-
-
-Finansal okuryazarlık seviyesini geliştirmek isteyen bireyler
-
-
-Yatırıma yeni başlayan veya yatırım konusunda bilgi eksikliği yaşayan kullanıcılar
-
-
-Gelirini birikim ve yatırım yoluyla değerlendirmek isteyen kişiler
+- 18–35 yaş arası gençler ve genç profesyoneller  
+- Finansal okuryazarlığını geliştirmek isteyen bireyler  
+- Borsaya ve yatırım dünyasına yeni adım atan kullanıcılar  
+- Gerçek para riski olmadan yatırım deneyimi kazanmak isteyen kişiler  
+- Güncel piyasa gelişmelerini takip ederek bilinçli finansal kararlar almak isteyen kullanıcılar  
