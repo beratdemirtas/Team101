@@ -74,5 +74,5 @@ Projemiz, temiz kod prensipleri ve modern yapay zeka orkestrasyonu gözetilerek 
 * **Daily Scrum Notları:** Takım içi iletişim günlük olarak yürütülmektedir. (Toplantı notları repodaki ilgili klasöre eklenecektir)[cite: 2].
 * **Sprint Board Durumu:** <img width="1920" height="838" alt="Ekran görüntüsü 2026-07-05 134912" src="https://github.com/user-attachments/assets/0398d9f7-c464-4a32-a392-8c6cd0968be9" />
 
-* **Ürün Durumu:** Backend MVP mimarisi tamamlanmış, LangChain ve Gemini entegreli RAG tabanlı API endpoint'leri çalışır duruma getirilmiştir[cite: 2].
+* **Ürün Durumu:**  Sprint 1 itibarıyla yapay zeka tarafında RAG (Retrieval-Augmented Generation) mimarisinin temelleri atılmış; LangChain ve Gemini entegrasyonu ile finansal dokümanları okuyup Sokratik cevaplar üreten API endpoint'leri çalışır hale getirilmiştir. Veritabanı tarafında MongoDB bağlantısı altyapısı kurulmuş olup, veri tablolarının (koleksiyonların) oluşturulması ve sohbet hafızasının eklenmesi sonraki sprintlere planlanmıştır[cite: 2].
 * **Detaylı Teknik Dokümantasyon:** Projenin mimari detayları ve geliştirme günlüğü için ana dizindeki `Fin101_Technical_Doc.md` dosyası incelenebilir.
