@@ -43,6 +43,23 @@ Kullanıcılar sanal bakiye ile borsa simülasyonu yaparak gerçek para riski ol
 * Chatbot
 * Profil
 
+## Arayüz Tasarımları
+
+### Dashboard
+<img src="images/dashboard_arayüz.png" width="800">
+
+### Borsa Simülasyonu
+<img src="images/simülasyon_arayüz.png" width="800">
+
+### Haberler
+<img src="images/haberler_arayü.png" width="800">
+
+### Chatbot
+<img src="images/chatbot_arayüz.png" width="800">
+
+### Profil
+<img src="images/profil_arayüz.png" width="800">
+
 ## Hedef Kitle
 * 18–35 yaş arası gençler ve genç profesyoneller
 * Finansal okuryazarlığını geliştirmek isteyen bireyler
