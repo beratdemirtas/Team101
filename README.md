@@ -93,3 +93,17 @@ Projemiz, temiz kod prensipleri ve modern yapay zeka orkestrasyonu gözetilerek 
 
 * **Ürün Durumu:**  Sprint 1 itibarıyla yapay zeka tarafında RAG (Retrieval-Augmented Generation) mimarisinin temelleri atılmış; LangChain ve Gemini entegrasyonu ile finansal dokümanları okuyup Sokratik cevaplar üreten API endpoint'leri çalışır hale getirilmiştir. Veritabanı tarafında MongoDB bağlantısı altyapısı kurulmuş olup, veri tablolarının (koleksiyonların) oluşturulması ve sohbet hafızasının eklenmesi sonraki sprintlere planlanmıştır[cite: 2].
 * **Detaylı Teknik Dokümantasyon:** Projenin mimari detayları ve geliştirme günlüğü için ana dizindeki `Fin101_Technical_Doc.md` dosyası incelenebilir.
+
+## Daily Scrum Ekran Görüntüleri
+
+<p align="center">
+  <img src="images/ss1.jpeg" width="30%">
+  <img src="images/ss2.jpeg" width="30%">
+  <img src="images/ss3.jpeg" width="30%">
+</p>
+
+<p align="center">
+  <img src="images/ss4.jpeg" width="30%">
+  <img src="images/ss5.jpeg" width="30%">
+  <img src="images/ss6.jpeg" width="30%">
+</p>
