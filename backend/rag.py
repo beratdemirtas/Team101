@@ -7,7 +7,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, HumanMessage
 from dotenv import load_dotenv
 
 from guardrails import (
@@ -116,7 +116,28 @@ def _get_llm() -> ChatGoogleGenerativeAI:
     return _llm
 
 
-async def ask_mentor(query: str) -> str:
+def _history_to_messages(history: list[dict] | None) -> list[BaseMessage]:
+    """Veritabanindan gelen [{'role': 'user'|'assistant', 'content': str}, ...]
+    kaydini LangChain mesaj nesnelerine cevirir. LangChain 1.x'te
+    `langchain.memory.ConversationBufferMemory` kaldirildigi icin, ayni islevi
+    goren (gecmis mesajlari sohbet baglamina ekleyen) manuel bir tampon kullanilir."""
+    if not history:
+        return []
+
+    messages: list[BaseMessage] = []
+    for item in history:
+        role = item.get("role")
+        content = item.get("content", "")
+        if not content:
+            continue
+        if role == "assistant":
+            messages.append(AIMessage(content=content))
+        else:
+            messages.append(HumanMessage(content=content))
+    return messages
+
+
+async def ask_mentor(query: str, history: list[dict] | None = None) -> str:
     llm = _get_llm()
 
     input_check = await check_user_input(query, llm)
@@ -129,8 +150,11 @@ async def ask_mentor(query: str) -> str:
 
     context = "\n\n".join(doc.page_content for doc in relevant_docs)
 
+    history_messages = _history_to_messages(history)
+
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
+        *history_messages,
         HumanMessage(content=f"Bağlam:\n{context}\n\nSoru: {query}"),
     ]
 

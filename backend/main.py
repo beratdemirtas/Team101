@@ -10,10 +10,12 @@ from pydantic import BaseModel
 from database import connect_db, close_db, get_database
 from models import UserCreate
 from rag import ask_mentor
+from chat_history import get_chat_history, save_chat_message
 from api import market, news
 
 
 class ChatRequest(BaseModel):
+    user_id: str
     message: str
 
 
@@ -65,8 +67,13 @@ async def create_user(user: UserCreate, db: DatabaseDep):
 
 
 @app.post("/chat/")
-async def chat(request: ChatRequest):
-    answer = await ask_mentor(request.message)
+async def chat(request: ChatRequest, db: DatabaseDep):
+    history = await get_chat_history(db, request.user_id)
+    answer = await ask_mentor(request.message, history)
+
+    await save_chat_message(db, request.user_id, "user", request.message)
+    await save_chat_message(db, request.user_id, "assistant", answer)
+
     return {"reply": answer}
 
 
