@@ -4,7 +4,7 @@ main.py — Fin101 FastAPI Uygulaması
 Endpoint'ler:
   GET  /          → Sağlık kontrolü
   POST /users/    → Kullanıcı kaydı
-  POST /chat/     → Sohbet (hafızalı) — RAG entegrasyonu ileriki sprint'te
+  POST /chat/     → Sohbet (hafızalı, RAG destekli)
 """
 
 from contextlib import asynccontextmanager
@@ -17,6 +17,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 import database as db_ops
 from database import connect_db, close_db, get_database
+from rag import ask_mentor
 from models import (
     ChatMessage,
     ChatResponse,
@@ -126,15 +127,15 @@ async def create_user_endpoint(user: UserCreate, db: DatabaseDep):
 )
 async def chat_endpoint(request: MessageCreate, db: DatabaseDep):
     """
-    Hafızalı sohbet endpoint'i.
+    Hafızalı, RAG destekli sohbet endpoint'i.
 
     **Akış:**
-    1. `session_id` yoksa → yeni `Conversation` belgesi oluşturulur.
-    2. Kullanıcı mesajı `ChatMessage` olarak `messages` koleksiyonuna kaydedilir.
-    3. Mentor yanıtı üretilir (şimdilik mock — RAG Sprint 3'te entegre edilecek).
-    4. Asistan yanıtı da `messages` koleksiyonuna kaydedilir.
-    5. `reply` ve `session_id` döndürülür; frontend session_id'yi saklayıp
-       sonraki isteklerde göndermelidir.
+    1. `session_id` yoksa yeni `Conversation` belgesi oluşturulur.
+    2. Kullanıcı mesajı `messages` koleksiyonuna kaydedilir.
+    3. Oturumdaki son 10 mesaj geçmiş olarak çekilir.
+    4. Geçmiş + RAG bağlamı Gemini'ye gönderilir, gerçek yanıt alınır.
+    5. Asistan yanıtı `messages` koleksiyonuna kaydedilir.
+    6. `reply` ve `session_id` döndürülür.
     """
 
     # ------------------------------------------------------------------
@@ -163,31 +164,14 @@ async def chat_endpoint(request: MessageCreate, db: DatabaseDep):
             )
         conversation_id = existing_conv["id"]
 
-    # ------------------------------------------------------------------
-    # 2. Kullanıcı mesajını kaydet
-    # ------------------------------------------------------------------
     user_msg = ChatMessage(role="user", content=request.message)
     await db_ops.save_message(db, conversation_id, session_id, request.user_id, user_msg)
 
-    # ------------------------------------------------------------------
-    # 3. Mentor yanıtı üret
-    #    SPRINT 3 TODO: `ask_mentor(request.message, history)` ile değiştirilecek.
-    #    Geçmiş mesajlar şöyle çekilebilir:
-    #      history = await db_ops.get_conversation_history(db, session_id, limit=10)
-    # ------------------------------------------------------------------
-    mock_reply = (
-        f"[Sokratik Mentor — RAG entegrasyonu Sprint 3'te aktif olacak]\n\n"
-        f"Sorunuzu aldım: \"{request.message}\"\n\n"
-        f"Şunu düşünmeni isterim: Bu soruyu sormana sebep olan temel varsayım ne?"
-    )
+    history = await db_ops.get_conversation_history(db, session_id, limit=10)
 
-    # ------------------------------------------------------------------
-    # 4. Asistan yanıtını kaydet
-    # ------------------------------------------------------------------
-    assistant_msg = ChatMessage(role="assistant", content=mock_reply)
+    real_reply = await ask_mentor(request.message, history)
+
+    assistant_msg = ChatMessage(role="assistant", content=real_reply)
     await db_ops.save_message(db, conversation_id, session_id, request.user_id, assistant_msg)
 
-    # ------------------------------------------------------------------
-    # 5. Yanıtı döndür
-    # ------------------------------------------------------------------
-    return ChatResponse(reply=mock_reply, session_id=session_id)
+    return ChatResponse(reply=real_reply, session_id=session_id)
