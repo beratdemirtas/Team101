@@ -108,17 +108,24 @@ def _get_llm() -> ChatGoogleGenerativeAI:
     return _llm
 
 
-async def ask_mentor(query: str) -> str:
+async def ask_mentor(query: str, history: list[dict] | None = None) -> str:
+    from langchain_core.messages import AIMessage
+
     vector_store = _get_vector_store()
     retriever = vector_store.as_retriever(search_kwargs={"k": 4})
     relevant_docs = retriever.invoke(query)
 
     context = "\n\n".join(doc.page_content for doc in relevant_docs)
 
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=f"Bağlam:\n{context}\n\nSoru: {query}"),
-    ]
+    messages = [SystemMessage(content=SYSTEM_PROMPT)]
+
+    for turn in (history or []):
+        if turn.get("role") == "user":
+            messages.append(HumanMessage(content=turn["content"]))
+        elif turn.get("role") == "assistant":
+            messages.append(AIMessage(content=turn["content"]))
+
+    messages.append(HumanMessage(content=f"Bağlam:\n{context}\n\nSoru: {query}"))
 
     llm = _get_llm()
     response = await llm.ainvoke(messages)

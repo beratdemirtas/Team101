@@ -1,21 +1,40 @@
+"""
+main.py — Fin101 FastAPI Uygulaması
+
+Endpoint'ler:
+  GET  /          → Sağlık kontrolü
+  POST /users/    → Kullanıcı kaydı
+  POST /chat/     → Sohbet (hafızalı, RAG destekli)
+  GET  /market/...→ Piyasa verileri
+  GET  /news/...  → Haber verileri
+"""
+
 from contextlib import asynccontextmanager
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel
 
+import database as db_ops
 from database import connect_db, close_db, get_database
-from models import UserCreate
 from rag import ask_mentor
+from models import (
+    ChatMessage,
+    ChatResponse,
+    ConversationCreate,
+    MessageCreate,
+    UserCreate,
+    UserResponse,
+)
 from api import market, news
 
 
-class ChatRequest(BaseModel):
-    message: str
-
+# ---------------------------------------------------------------------------
+# Uygulama Yaşam Döngüsü
+# ---------------------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,10 +43,14 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 
+# ---------------------------------------------------------------------------
+# FastAPI Uygulaması
+# ---------------------------------------------------------------------------
+
 app = FastAPI(
     title="Fin101 API",
     description="Finansal okuryazarlık ve yapay zeka mentorluk platformu backend'i.",
-    version="0.1.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -40,6 +63,10 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# Dependency Injection — Veritabanı
+# ---------------------------------------------------------------------------
+
 def get_db() -> AsyncIOMotorDatabase:
     return get_database()
 
@@ -47,50 +74,138 @@ def get_db() -> AsyncIOMotorDatabase:
 DatabaseDep = Annotated[AsyncIOMotorDatabase, Depends(get_db)]
 
 
-@app.get("/")
+# ===========================================================================
+# ENDPOINT'LER
+# ===========================================================================
+
+
+@app.get("/", tags=["Sistem"])
 async def root():
-    return {"status": "ok", "message": "Fin101 API is running."}
+    """Sağlık kontrolü — API'nin ayakta olduğunu doğrular."""
+    return {"status": "ok", "message": "Fin101 API is running.", "version": "0.3.0"}
 
 
-@app.post("/users/", status_code=201)
-async def create_user(user: UserCreate, db: DatabaseDep):
-    collection = db["Users"]
+# ---------------------------------------------------------------------------
+# POST /users/ — Kullanıcı Kaydı
+# ---------------------------------------------------------------------------
 
-    existing = await collection.find_one({"email": user.email})
-    if existing:
-        raise HTTPException(status_code=409, detail="Bu e-posta adresi zaten kayıtlı.")
+@app.post(
+    "/users/",
+    response_model=UserResponse,
+    status_code=201,
+    tags=["Kullanıcılar"],
+    summary="Yeni kullanıcı oluştur",
+)
+async def create_user_endpoint(user: UserCreate, db: DatabaseDep):
+    """
+    Yeni bir kullanıcı kaydeder.
 
-    result = await collection.insert_one(user.model_dump())
-    return {"id": str(result.inserted_id), "message": "Kullanıcı başarıyla oluşturuldu."}
+    - **name**: Kullanıcı adı soyadı
+    - **email**: Benzersiz e-posta adresi (duplicate → 400)
+    - **risk_profile**: Düşük / Orta / Yüksek (varsayılan: Orta)
+    - **virtual_balance**: Başlangıç sanal bakiye (varsayılan: 10000.0)
+    """
+    try:
+        inserted_id = await db_ops.create_user(db, user)
+    except ValueError as exc:
+        # create_user duplicate e-posta için ValueError fırlatır
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    # Kaydedilen belgeyi geri çekip UserResponse ile döndür
+    created_doc = await db_ops.get_user_by_id(db, inserted_id)
+    if not created_doc:
+        raise HTTPException(status_code=500, detail="Kullanıcı kaydedildi fakat geri okunamadı.")
+
+    return UserResponse(**created_doc)
 
 
-@app.post("/chat/")
-async def chat(request: ChatRequest):
-    answer = await ask_mentor(request.message)
-    return {"reply": answer}
+# ---------------------------------------------------------------------------
+# POST /chat/ — Sohbet ve Hafıza Akışı
+# ---------------------------------------------------------------------------
+
+@app.post(
+    "/chat/",
+    response_model=ChatResponse,
+    tags=["Sohbet"],
+    summary="Sokratik Mentor'a mesaj gönder (hafızalı)",
+)
+async def chat_endpoint(request: MessageCreate, db: DatabaseDep):
+    """
+    Hafızalı, RAG destekli sohbet endpoint'i.
+
+    **Akış:**
+    1. `session_id` yoksa yeni `Conversation` belgesi oluşturulur.
+    2. Kullanıcı mesajı `messages` koleksiyonuna kaydedilir.
+    3. Oturumdaki son 10 mesaj geçmiş olarak çekilir.
+    4. Geçmiş + RAG bağlamı Gemini'ye gönderilir, gerçek yanıt alınır.
+    5. Asistan yanıtı `messages` koleksiyonuna kaydedilir.
+    6. `reply` ve `session_id` döndürülür.
+    """
+
+    # ------------------------------------------------------------------
+    # 1. Oturum Yönetimi: session_id yoksa yeni conversation oluştur
+    # ------------------------------------------------------------------
+    session_id: UUID
+
+    if request.session_id is None:
+        # Yeni oturum: başlık olarak kullanıcı mesajının ilk 60 karakteri
+        title = request.message[:60] + ("..." if len(request.message) > 60 else "")
+        new_conv = ConversationCreate(
+            user_id=request.user_id,
+            title=title,
+        )
+        conversation_id = await db_ops.create_conversation(db, new_conv)
+        session_id = new_conv.session_id        # uuid4 ile üretildi
+    else:
+        # Mevcut oturumu bul
+        session_id = request.session_id
+        existing_conv = await db_ops.get_conversation_by_session(db, session_id)
+
+        if not existing_conv:
+            raise HTTPException(
+                status_code=404,
+                detail=f"session_id '{session_id}' bulunamadı. Yeni oturum için session_id göndermeden tekrar deneyin.",
+            )
+        conversation_id = existing_conv["id"]
+
+    user_msg = ChatMessage(role="user", content=request.message)
+    await db_ops.save_message(db, conversation_id, session_id, request.user_id, user_msg)
+
+    history = await db_ops.get_conversation_history(db, session_id, limit=10)
+
+    real_reply = await ask_mentor(request.message, history)
+
+    assistant_msg = ChatMessage(role="assistant", content=real_reply)
+    await db_ops.save_message(db, conversation_id, session_id, request.user_id, assistant_msg)
+
+    return ChatResponse(reply=real_reply, session_id=session_id)
 
 
-@app.get("/market/history/{ticker}")
+# ---------------------------------------------------------------------------
+# MARKET VE HABER ENDPOINT'LERİ (Takım Arkadaşının Kodları)
+# ---------------------------------------------------------------------------
+
+@app.get("/market/history/{ticker}", tags=["Piyasa Verileri"])
 async def stock_history(ticker: str, start: str, end: str):
     # yfinance senkron çalışır; event loop'u kilitlememesi için threadpool'a atılır.
     data = await run_in_threadpool(market.get_stock_history, ticker, start, end)
     return {"ticker": ticker, "data": data}
 
 
-@app.get("/market/price/{ticker}")
+@app.get("/market/price/{ticker}", tags=["Piyasa Verileri"])
 async def stock_price(ticker: str):
     price = await run_in_threadpool(market.get_current_price, ticker)
     return price
 
 
-@app.get("/news/company/{symbol}")
+@app.get("/news/company/{symbol}", tags=["Haberler"])
 async def company_news(symbol: str, from_date: str, to_date: str):
     # finnhub-python da senkron; aynı sebeple threadpool'a atılır.
     articles = await run_in_threadpool(news.get_company_news, symbol, from_date, to_date)
     return {"symbol": symbol, "articles": articles}
 
 
-@app.get("/news/market")
+@app.get("/news/market", tags=["Haberler"])
 async def market_news(category: str = "general"):
     articles = await run_in_threadpool(news.get_market_news, category)
     return {"category": category, "articles": articles}
