@@ -1,8 +1,8 @@
 # Fin101 — Proje Yol Haritası & Eksik Görevler
 
 > **Son Güncelleme:** 2026-07-15
-> **Dal:** feature/database → main'e merge hazır
-> **Durum Özeti:** Backend MVP + RAG + Sohbet Hafızası + Temel Frontend tamamlandı.
+> **Aktif Dal:** `main`
+> **Durum Özeti:** Backend MVP + RAG + Sohbet Hafızası + Temel Frontend tamamlandı. Proje Sprint 3 ile sonlanıyor.
 
 ---
 
@@ -21,111 +21,105 @@
 | `GET /news/company/{symbol}` | ✅ | Finnhub şirket haberleri |
 | RAG Pipeline | ✅ | ChromaDB + `all-MiniLM-L6-v2` + Gemini 2.5 Flash |
 | Sohbet Hafızası | ✅ | `conversations` + `messages` MongoDB koleksiyonları |
-| Guardrails | ✅ | `check_user_input` + `check_assistant_output` (Gemini LLM tabanlı) |
+| Guardrails | ✅ | `check_user_input` + `check_assistant_output` (LLM tabanlı) |
 | CORS | ✅ | `localhost:3000` ve `localhost:5173` izinli |
 
 ### Frontend
 | Sayfa / Bileşen | Durum | Açıklama |
 |---|---|---|
 | Chatbot (`ChatView`) | ✅ | `session_id` yönetimi, Markdown render, Typewriter efekti |
-| Dashboard | ✅ | `getMarketPrice` ile 4 hisse anlık fiyat kartları |
+| Dashboard | ✅ | `getMarketPrice` ile anlık hisse fiyat kartları |
 | Haberler (`NewsMock`) | ✅ | `getMarketNews` ile Finnhub haberleri, kategori filtreleme |
 | Profil (`ProfileMock`) | ✅ | Statik iskelet (XP bar, risk profili, ilgi alanları) |
 | `api.js` servis katmanı | ✅ | `sendChatMessage`, `getMarketPrice`, `getMarketHistory`, `getMarketNews`, `getCompanyNews` |
 
 ---
 
-## 🔴 Eksik — Yüksek Öncelik (Sprint 3)
+## 🚀 Sprint 3 — Kalan Kritik Görevler
+
+> Sprint 3, projenin **son ve tamamlayıcı** aşamasıdır. Aşağıdaki görevler projenin çekirdek işlevselliği için zorunludur.
+
+---
 
 ### 1. Kimlik Doğrulama Sistemi (JWT Auth)
 
-**Neden gerekli:** Şu an `/chat/` endpoint'ine herkes erişebilir. `user_id` sabit `"demo-user"` string'i.
+**Neden kritik:** Şu an tüm endpoint'ler açık; `user_id` sabit `"demo-user"` değeri kullanılıyor. Auth olmadan kullanıcıya özel hiçbir veri gösterilemez.
 
-**Yapılacaklar:**
-- [ ] `python-jose` + `passlib` kurulumu
-- [ ] `POST /auth/register` — şifre bcrypt hash'i ile `users` koleksiyonuna kayıt
-- [ ] `POST /auth/login` — JWT token üretimi (`access_token`, `refresh_token`)
-- [ ] FastAPI `Security` dependency ile tüm endpoint'lere `Bearer` token koruması
-- [ ] `models.py`'e `hashed_password` alanı eklenmesi (şu an yorum satırı)
-- [ ] Frontend: login/register form sayfası
-- [ ] Frontend: JWT token'ı `localStorage`'da saklama ve her istekte `Authorization` header'ı gönderme
-- [ ] `demo-user` sabit değerini gerçek `user_id` ile değiştirme
+**Backend:**
+- [ ] `python-jose` + `passlib[bcrypt]` kurulumu ve `requirements.txt`'e eklenmesi
+- [ ] `models.py`'e `hashed_password` alanı eklenmesi
+- [ ] `POST /auth/register` — şifreyi hash'leyip `users` koleksiyonuna kayıt
+- [ ] `POST /auth/login` — kimlik doğrulama + JWT `access_token` üretimi
+- [ ] FastAPI `Security(oauth2_scheme)` ile `/chat/`, `/users/me` endpoint'lerine token koruması
 
-**İlgili Dosyalar:** `backend/models.py`, `backend/main.py`, `frontend/src/services/api.js`, `frontend/src/pages/`
+**Frontend:**
+- [ ] Login ve Register form sayfaları
+- [ ] JWT token'ı `localStorage`'da saklama
+- [ ] `api.js`'teki tüm isteklere `Authorization: Bearer <token>` header'ı eklenmesi
+- [ ] `sendChatMessage` içindeki `"demo-user"` sabitinin token'dan alınan gerçek `user_id` ile değiştirilmesi
+- [ ] Oturum açılmamışsa login sayfasına yönlendirme
+
+**İlgili dosyalar:** `backend/models.py`, `backend/main.py`, `frontend/src/services/api.js`, `frontend/src/pages/`
 
 ---
 
 ### 2. Profil Sayfasının MongoDB ile Eşleştirilmesi
 
-**Neden gerekli:** `ProfileMock.jsx` şu an tamamen statik veri gösteriyor.
+**Neden kritik:** `ProfileMock.jsx` tamamen statik veri gösteriyor; Auth tamamlanınca gerçek kullanıcı verisi bağlanmalı.
 
-**Yapılacaklar:**
-- [ ] Auth tamamlandıktan sonra `GET /users/me` endpoint'i eklenmesi
+**Backend:**
+- [ ] `GET /users/me` endpoint'i (token'dan `user_id` çekerek ilgili belgeyi döndürür)
+- [ ] `PUT /users/me` endpoint'i (isim, risk_profile, ilgi alanları güncellemesi)
+
+**Frontend:**
 - [ ] `ProfileMock.jsx`'e `useEffect` + `GET /users/me` çağrısı
 - [ ] `xp_score`, `level`, `badges`, `risk_profile`, `virtual_balance` alanlarının dinamik gösterimi
-- [ ] Profil düzenleme: `PUT /users/me` endpoint'i + form bileşeni
-- [ ] Avatar yükleme (opsiyonel, S3 veya base64)
+- [ ] Profil düzenleme formu (isim, risk profili, ilgi alanları)
 
-**İlgili Dosyalar:** `backend/main.py`, `frontend/src/pages/ProfileMock.jsx`
+**İlgili dosyalar:** `backend/main.py`, `frontend/src/pages/ProfileMock.jsx`
 
 ---
-
-## 🟠 Eksik — Orta Öncelik (Sprint 4)
 
 ### 3. Borsa Simülasyonu Sayfasının Aktifleştirilmesi
 
-**Neden gerekli:** `SimulationMock.jsx` tamamen boş iskelet.
+**Neden kritik:** `SimulationMock.jsx` tamamen boş iskelet; projenin ana öğrenme aracıdır.
 
-**Yapılacaklar:**
-- [ ] Kaggle veri seti entegrasyonu (örn: BIST-100 tarihsel fiyat CSV)
-  - Öneri: `akfin` veya `Kaggle BIST dataset`
-  - Alternatif: yfinance `getMarketHistory` ile dinamik çekme
-- [ ] `recharts` veya `chart.js` ile OHLCV grafik bileşeni
-- [ ] Sanal al/sat arayüzü: hisse seçimi, miktar girişi, işlem butonu
-- [ ] `POST /transactions/` backend endpoint'i (`transactions` koleksiyonu — models.py'de şema hazır)
-- [ ] `GET /portfolio/me` endpoint'i (portföy özeti)
+**Veri Kaynağı Seçenekleri:**
+- Yfinance `getMarketHistory` (dinamik, anlık) — **önerilen**
+- Kaggle BIST-100 CSV dataset (statik ama offline çalışır)
+
+**Backend:**
+- [ ] `POST /transactions/` endpoint'i (al/sat işlemi kaydı → `transactions` koleksiyonu)
+- [ ] `GET /portfolio/me` endpoint'i (kullanıcının portföy özeti → `portfolios` koleksiyonu)
+- [ ] `models.py`'deki `Transaction` ve `Portfolio` Pydantic şemalarının aktivasyonu
+
+**Frontend:**
+- [ ] `recharts` veya `chart.js` ile OHLCV mum/çizgi grafik bileşeni
+- [ ] Hisse arama + seçim arayüzü
+- [ ] Sanal al/sat formu (miktar, fiyat, onay)
+- [ ] Portföy özeti tablosu (holding, ortalama maliyet, kâr/zarar)
 - [ ] Dashboard'a portföy özet kartı entegrasyonu
 
-**İlgili Dosyalar:** `backend/main.py`, `backend/models.py`, `frontend/src/pages/SimulationMock.jsx`, `frontend/src/pages/DashboardMock.jsx`
+**İlgili dosyalar:** `backend/main.py`, `backend/models.py`, `frontend/src/pages/SimulationMock.jsx`, `frontend/src/pages/DashboardMock.jsx`
 
 ---
 
-### 4. Kullanıcı XP / Gamification Sistemi
+## 🗂️ Gelecek Vizyonu (Backlog)
 
-**Neden gerekli:** `UserInDB` modelinde `xp_score`, `level`, `badges` alanları var ama hiç güncellenmeyebilir.
+> Aşağıdaki özellikler projenin **çekirdeği için zorunlu değildir** ve herhangi bir sprint'e bağlı değildir. Proje ilerledikçe değerlendirilebilir.
 
-**Yapılacaklar:**
-- [ ] Her başarılı `/chat/` yanıtından sonra `xp_score += 10` güncellenmesi
-- [ ] XP eşiğine göre `level` otomatik artışı
-- [ ] Liderlik tablosu endpoint'i: `GET /leaderboard/` (`users` üzerinde `xp_score` desc sıralama)
-- [ ] Dashboard'a liderlik tablosu widget'ı
-
----
-
-## 🟡 Eksik — Düşük Öncelik / İleriki Sprint (Sprint 5+)
-
-### 5. Yatırımcı Meydanı (Sosyal Ağ)
-
-- [ ] `investor_square` MongoDB koleksiyonu aktivasyonu (şema `db_analysis.md`'de hazır)
-- [ ] `POST /posts/` — gönderi oluşturma
-- [ ] `GET /posts/feed` — akış
-- [ ] Like / Yorum sistemi
-- [ ] Moderasyon: `is_flagged` alanı + admin paneli
-
-### 6. Altyapı & Güvenlik
-
-- [ ] `slowapi` ile rate limiting (`/chat/` için IP başına dakika limiti)
-- [ ] Global FastAPI exception handler (`@app.exception_handler`)
-- [ ] `pytest` + `httpx` ile temel API testleri
-- [ ] Docker: `Dockerfile` + `docker-compose.yml`
-- [ ] Deployment: Railway / Render (backend) + Vercel / Netlify (frontend)
-- [ ] MongoDB Atlas index'leri: `email` (unique), `session_id`, `conversation_id + created_at`
-
-### 7. RAG İyileştirmeleri
-
-- [ ] `intfloat/multilingual-e5-base` embedding modeline geçiş (Türkçe metinlerde daha yüksek kalite)
-- [ ] ChromaDB yerine Atlas Vector Search entegrasyonu (production'da)
-- [ ] Kaynak alıntısı: asistan yanıtına hangi PDF chunk'ından alındığını ekleme (`rag_sources` alanı)
+| Özellik | Açıklama |
+|---|---|
+| **XP / Gamification** | Her `/chat/` yanıtından sonra `xp_score` artışı, seviye sistemi, liderlik tablosu |
+| **Yatırımcı Meydanı** | Sosyal ağ gönderileri, like/yorum, moderasyon (`investor_square` koleksiyonu) |
+| **Rate Limiting** | `slowapi` ile IP başına `/chat/` istek sınırı |
+| **Global Hata Yönetimi** | `@app.exception_handler` ile standart hata formatı |
+| **Test Coverage** | `pytest` + `httpx` + `pytest-asyncio` |
+| **Docker** | `Dockerfile` + `docker-compose.yml` |
+| **Deployment** | Railway / Render (backend) + Vercel / Netlify (frontend) |
+| **Türkçe Embedding** | `intfloat/multilingual-e5-base` — Türkçe metinlerde daha yüksek kalite |
+| **RAG Kaynak Alıntısı** | Asistan yanıtına kaynak PDF chunk bilgisi eklenmesi |
+| **Atlas Vector Search** | ChromaDB → MongoDB Atlas Vector Search geçişi (production) |
 
 ---
 
@@ -161,17 +155,14 @@ npm run dev
 
 ---
 
-## Koleksiyon & Şema Referansı
+## Koleksiyon Durumu
 
-Detaylı MongoDB şema tasarımı ve koleksiyon açıklamaları için:
-→ Bkz. [Antigravity Analiz Raporu](/.agents/) veya `db_analysis.md` (proje asistan çıktısı)
-
-| Koleksiyon | Durum | Açıklama |
+| Koleksiyon | Durum | Bağımlılık |
 |---|---|---|
 | `users` | ✅ Aktif | Kayıt + profil |
 | `conversations` | ✅ Aktif | Sohbet oturumları |
 | `messages` | ✅ Aktif | Tekil mesajlar |
-| `transactions` | 🔴 Eksik | Borsa işlemleri |
-| `portfolios` | 🔴 Eksik | Portföy özeti |
-| `news_cache` | 🟡 Opsiyonel | Haber TTL cache |
-| `investor_square` | 🟡 Sprint 5+ | Sosyal ağ |
+| `transactions` | 🔴 Sprint 3 | Borsa işlemleri |
+| `portfolios` | 🔴 Sprint 3 | Portföy özeti |
+| `news_cache` | 🗂️ Backlog | Haber TTL cache |
+| `investor_square` | 🗂️ Backlog | Sosyal ağ |
