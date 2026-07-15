@@ -7,10 +7,18 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, HumanMessage
 from dotenv import load_dotenv
 
-load_dotenv()
+from guardrails import (
+    INPUT_REFUSAL_MESSAGE,
+    OUTPUT_REFUSAL_MESSAGE,
+    check_assistant_output,
+    check_user_input,
+    extract_text,
+)
+
+load_dotenv(override=True)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,7 +26,7 @@ logger = logging.getLogger(__name__)
 RAG_DATA_DIR = Path(__file__).resolve().parent / "rag_data"
 CHROMA_PERSIST_DIR = Path(__file__).resolve().parent / "chroma_store"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 
 SYSTEM_PROMPT = (
     "Sen genç yatırımcılar için Sokratik yöntemle eğitim veren, "
@@ -109,7 +117,12 @@ def _get_llm() -> ChatGoogleGenerativeAI:
 
 
 async def ask_mentor(query: str, history: list[dict] | None = None) -> str:
-    from langchain_core.messages import AIMessage
+    llm = _get_llm()
+
+    # GUARDRAIL 1: Özlem'in yazdığı kullanıcı girişi güvenlik kontrolü
+    input_check = await check_user_input(query, llm)
+    if not input_check.allowed:
+        return INPUT_REFUSAL_MESSAGE
 
     vector_store = _get_vector_store()
     retriever = vector_store.as_retriever(search_kwargs={"k": 4})
@@ -117,6 +130,7 @@ async def ask_mentor(query: str, history: list[dict] | None = None) -> str:
 
     context = "\n\n".join(doc.page_content for doc in relevant_docs)
 
+    # HAFIZA: Senin main dalındaki temiz mesaj ekleme döngün
     messages = [SystemMessage(content=SYSTEM_PROMPT)]
 
     for turn in (history or []):
@@ -127,6 +141,12 @@ async def ask_mentor(query: str, history: list[dict] | None = None) -> str:
 
     messages.append(HumanMessage(content=f"Bağlam:\n{context}\n\nSoru: {query}"))
 
-    llm = _get_llm()
     response = await llm.ainvoke(messages)
-    return response.content
+    answer = extract_text(response.content)
+
+    # GUARDRAIL 2: Özlem'in yazdığı asistan çıkışı güvenlik kontrolü
+    output_check = await check_assistant_output(answer, llm)
+    if not output_check.allowed:
+        return OUTPUT_REFUSAL_MESSAGE
+
+    return answer
