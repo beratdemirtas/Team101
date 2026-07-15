@@ -12,3 +12,5 @@ langchain-google-genai
 chromadb
 pymupdf
 sentence-transformers
+yfinance
+finnhub-python

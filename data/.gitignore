@@ -1,0 +1,50 @@
+# Ham veri dosyalarını git'e ekleme — repo boyutunu küçük tut.
+# İndirme talimatları README.md içinde, otomatik indirme için download_data.py kullan.
+
+# --- GitHub'daki gerçek klasör adları (büyük/küçük harf ve Türkçe karakterlere dikkat) ---
+data/RAG_Eğitim_Verileri/
+data/borsa_istanbul_kaggle/
+data/Istanbul Stock Exchange kaggle/
+data/PISA_Dataset/
+data/SPK_Yatirimci_Bilgilendirme_kitapciklari/
+data/Turkish Sentiment Analysis Dataset/
+data/turkish_movie_sentiment_dataset/
+
+# --- Eski/alternatif isimlendirme ihtimaline karşı (varsa) ---
+data/rag_egitim_verileri_v1/
+data/istanbul_stock_exchange_uci/
+data/pisa_dataset/
+data/spk_yatirimci_bilgilendirme_kitapciklari/
+data/turkish_sentiment_analysis_dataset/
+
+# --- Genel veri uzantıları (klasör adı ne olursa olsun yakalar) ---
+data/**/*.csv
+data/**/*.sav
+data/**/*.sas7bdat
+data/**/*.pdf
+data/**/*.html
+data/**/*.htm
+data/**/*.zip
+data/**/*.rar
+data/**/*.json
+
+# README ve script'leri hariç tutma (bunlar takip edilmeye devam etsin)
+!data/README.md
+!data/download_data.py
+!data/requirements.txt
+!data/.gitignore
+
+# Kaggle API key'i asla commit etme
+kaggle.json
+.kaggle/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Backend (FastAPI/Node ortak kalıntılar — repo kökünde .gitignore varsa çakışmaz, ekstra güvenlik)
+node_modules/
+*.log

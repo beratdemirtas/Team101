@@ -5,6 +5,8 @@ Endpoint'ler:
   GET  /          → Sağlık kontrolü
   POST /users/    → Kullanıcı kaydı
   POST /chat/     → Sohbet (hafızalı, RAG destekli)
+  GET  /market/...→ Piyasa verileri
+  GET  /news/...  → Haber verileri
 """
 
 from contextlib import asynccontextmanager
@@ -13,6 +15,7 @@ from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.concurrency import run_in_threadpool
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 import database as db_ops
@@ -26,6 +29,7 @@ from models import (
     UserCreate,
     UserResponse,
 )
+from api import market, news
 
 
 # ---------------------------------------------------------------------------
@@ -175,3 +179,33 @@ async def chat_endpoint(request: MessageCreate, db: DatabaseDep):
     await db_ops.save_message(db, conversation_id, session_id, request.user_id, assistant_msg)
 
     return ChatResponse(reply=real_reply, session_id=session_id)
+
+
+# ---------------------------------------------------------------------------
+# MARKET VE HABER ENDPOINT'LERİ (Takım Arkadaşının Kodları)
+# ---------------------------------------------------------------------------
+
+@app.get("/market/history/{ticker}", tags=["Piyasa Verileri"])
+async def stock_history(ticker: str, start: str, end: str):
+    # yfinance senkron çalışır; event loop'u kilitlememesi için threadpool'a atılır.
+    data = await run_in_threadpool(market.get_stock_history, ticker, start, end)
+    return {"ticker": ticker, "data": data}
+
+
+@app.get("/market/price/{ticker}", tags=["Piyasa Verileri"])
+async def stock_price(ticker: str):
+    price = await run_in_threadpool(market.get_current_price, ticker)
+    return price
+
+
+@app.get("/news/company/{symbol}", tags=["Haberler"])
+async def company_news(symbol: str, from_date: str, to_date: str):
+    # finnhub-python da senkron; aynı sebeple threadpool'a atılır.
+    articles = await run_in_threadpool(news.get_company_news, symbol, from_date, to_date)
+    return {"symbol": symbol, "articles": articles}
+
+
+@app.get("/news/market", tags=["Haberler"])
+async def market_news(category: str = "general"):
+    articles = await run_in_threadpool(news.get_market_news, category)
+    return {"category": category, "articles": articles}
