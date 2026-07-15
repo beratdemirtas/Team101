@@ -116,30 +116,10 @@ def _get_llm() -> ChatGoogleGenerativeAI:
     return _llm
 
 
-def _history_to_messages(history: list[dict] | None) -> list[BaseMessage]:
-    """Veritabanindan gelen [{'role': 'user'|'assistant', 'content': str}, ...]
-    kaydini LangChain mesaj nesnelerine cevirir. LangChain 1.x'te
-    `langchain.memory.ConversationBufferMemory` kaldirildigi icin, ayni islevi
-    goren (gecmis mesajlari sohbet baglamina ekleyen) manuel bir tampon kullanilir."""
-    if not history:
-        return []
-
-    messages: list[BaseMessage] = []
-    for item in history:
-        role = item.get("role")
-        content = item.get("content", "")
-        if not content:
-            continue
-        if role == "assistant":
-            messages.append(AIMessage(content=content))
-        else:
-            messages.append(HumanMessage(content=content))
-    return messages
-
-
 async def ask_mentor(query: str, history: list[dict] | None = None) -> str:
     llm = _get_llm()
 
+    # GUARDRAIL 1: Özlem'in yazdığı kullanıcı girişi güvenlik kontrolü
     input_check = await check_user_input(query, llm)
     if not input_check.allowed:
         return INPUT_REFUSAL_MESSAGE
@@ -150,17 +130,21 @@ async def ask_mentor(query: str, history: list[dict] | None = None) -> str:
 
     context = "\n\n".join(doc.page_content for doc in relevant_docs)
 
-    history_messages = _history_to_messages(history)
+    # HAFIZA: Senin main dalındaki temiz mesaj ekleme döngün
+    messages = [SystemMessage(content=SYSTEM_PROMPT)]
 
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT),
-        *history_messages,
-        HumanMessage(content=f"Bağlam:\n{context}\n\nSoru: {query}"),
-    ]
+    for turn in (history or []):
+        if turn.get("role") == "user":
+            messages.append(HumanMessage(content=turn["content"]))
+        elif turn.get("role") == "assistant":
+            messages.append(AIMessage(content=turn["content"]))
+
+    messages.append(HumanMessage(content=f"Bağlam:\n{context}\n\nSoru: {query}"))
 
     response = await llm.ainvoke(messages)
     answer = extract_text(response.content)
 
+    # GUARDRAIL 2: Özlem'in yazdığı asistan çıkışı güvenlik kontrolü
     output_check = await check_assistant_output(answer, llm)
     if not output_check.allowed:
         return OUTPUT_REFUSAL_MESSAGE
