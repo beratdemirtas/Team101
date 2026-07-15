@@ -19,6 +19,7 @@ export default function ChatView() {
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
 
   const scrollRef = useRef(null);
 
@@ -47,7 +48,12 @@ export default function ChatView() {
     setIsLoading(true);
 
     try {
-      const reply = await sendChatMessage(trimmed);
+      const { reply, sessionId: newSessionId } = await sendChatMessage(
+        trimmed,
+        "demo-user",
+        sessionId
+      );
+      setSessionId(newSessionId);
       setMessages((prev) => [
         ...prev,
         {
@@ -100,6 +106,9 @@ export default function ChatView() {
               role={msg.role}
               content={msg.content}
               timestamp={msg.timestamp}
+              animate={
+                msg.role === "assistant" && idx === messages.length - 1
+              }
             />
           ))}
           {isLoading && <TypingIndicator />}
