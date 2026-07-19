@@ -146,6 +146,12 @@ Proje yönetimi tarafında GitHub deposu oluşturulmuş, teknik dokümantasyon h
 
 ### Sprint 2 Çıktıları
 * **Backlog Düzeni ve Story Seçimleri:** Sprint 2 kapsamında frontend geliştirmeleri, sohbet hafızası, finansal veri API entegrasyonları ve backend–frontend bağlantısı önceliklendirilmiştir. User Story'ler ekip üyelerine dağıtılmış ve görevler teknik Task'lere ayrılmıştır.
+* **Sprint Board Durumu:**
+<p align="center">
+  <img src="images/sprint2_t1.png" width="70%">
+  <img src="images/sprint2_t2.png" width="70%">
+</p>
+
 * **Daily Scrum Notları:** Takım içi iletişim düzenli olarak sürdürülmüş, yapılan çalışmalar ve karşılaşılan problemler günlük takip edilmiştir. Toplantı notları ve ekran görüntüleri repodaki ilgili klasöre eklenmiştir.
 * **Ürün Durumu:** Sprint 2 itibarıyla uygulamanın temel frontend arayüzleri geliştirilmiş ve backend servisleriyle bağlantıları kurulmuştur. Chatbot, Dashboard, Haberler ve Profil sayfalarının temel yapıları hazırlanmıştır. Chatbot tarafında kullanıcıların konuşmalarının oturum bazlı olarak saklanabilmesi için MongoDB üzerinde sohbet hafızası sistemi geliştirilmiştir.
 Finansal veri entegrasyonu kapsamında anlık hisse fiyatlarının, tarihsel piyasa verilerinin, genel piyasa haberlerinin ve şirket bazlı haberlerin alınabilmesi için gerekli API endpoint'leri oluşturulmuştur. Backend ile frontend arasındaki iletişimi yönetmek amacıyla merkezi bir servis katmanı hazırlanmıştır.
@@ -153,10 +159,10 @@ Finansal veri entegrasyonu kapsamında anlık hisse fiyatlarının, tarihsel piy
 ### Daily Scrum Ekran Görüntüleri
 
 <p align="center">
-  <img src="images/sprint2_1.png" width="50%">
-  <img src="images/sprint2_2.png" width="50%">
-  <img src="images/sprint2_3.png" width="50%">
-  <img src="images/sprint2_4.png" width="50%">
+  <img src="images/sprint2_1.png" width="70%">
+  <img src="images/sprint2_2.png" width="70%">
+  <img src="images/sprint2_3.png" width="70%">
+  <img src="images/sprint2_4.png" width="70%">
 
 </p>
 
