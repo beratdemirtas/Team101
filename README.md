@@ -153,10 +153,10 @@ Finansal veri entegrasyonu kapsamında anlık hisse fiyatlarının, tarihsel piy
 ### Daily Scrum Ekran Görüntüleri
 
 <p align="center">
-  <img src="images/sprint2_1.jpeg" width="30%">
-  <img src="images/sprint2_2.jpeg" width="50%">
-  <img src="images/sprint2_3.jpeg" width="50%">
-  <img src="images/sprint2_4.jpeg" width="50%">
+  <img src="images/sprint2_1.png" width="30%">
+  <img src="images/sprint2_2.png" width="50%">
+  <img src="images/sprint2_3.png" width="50%">
+  <img src="images/sprint2_4.png" width="50%">
 
 </p>
 
