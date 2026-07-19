@@ -135,3 +135,59 @@ Proje yönetimi tarafında GitHub deposu oluşturulmuş, teknik dokümantasyon h
 * Sohbet geçmişi (chat memory) MongoDB üzerinde yönetilecek ve kullanıcı deneyimi geliştirilecektir.
 * Finansal veri API'leri sisteme entegre edilerek gerçek zamanlı piyasa verileri sunulacaktır.
 * Test süreçleri, global hata yönetimi, rate limiting ve Docker desteği eklenerek sistem üretim ortamına daha hazır hâle getirilecektir.
+
+### Sprint 2 Çıktıları
+* **Backlog Düzeni ve Story Seçimleri:** Sprint 2 kapsamında frontend geliştirmeleri, sohbet hafızası, finansal veri API entegrasyonları ve backend–frontend bağlantısı önceliklendirilmiştir. User Story'ler ekip üyelerine dağıtılmış ve görevler teknik Task'lere ayrılmıştır.
+* **Daily Scrum Notları:** Takım içi iletişim düzenli olarak sürdürülmüş, yapılan çalışmalar ve karşılaşılan problemler günlük takip edilmiştir. Toplantı notları ve ekran görüntüleri repodaki ilgili klasöre eklenmiştir.
+* **Ürün Durumu:** Sprint 2 itibarıyla uygulamanın temel frontend arayüzleri geliştirilmiş ve backend servisleriyle bağlantıları kurulmuştur. Chatbot, Dashboard, Haberler ve Profil sayfalarının temel yapıları hazırlanmıştır. Chatbot tarafında kullanıcıların konuşmalarının oturum bazlı olarak saklanabilmesi için MongoDB üzerinde sohbet hafızası sistemi geliştirilmiştir.
+Finansal veri entegrasyonu kapsamında anlık hisse fiyatlarının, tarihsel piyasa verilerinin, genel piyasa haberlerinin ve şirket bazlı haberlerin alınabilmesi için gerekli API endpoint'leri oluşturulmuştur. Backend ile frontend arasındaki iletişimi yönetmek amacıyla merkezi bir servis katmanı hazırlanmıştır.
+
+## Daily Scrum Ekran Görüntüleri
+
+<p align="center">
+  <img src="images/sprint2_1.jpeg" width="30%">
+  <img src="images/sprint2_2.jpeg" width="50%">
+  <img src="images/sprint2_3.jpeg" width="50%">
+  <img src="images/sprint2_4.jpeg" width="50%">
+
+</p>
+
+## Sprint 2 Review
+
+Sprint 2 kapsamında uygulamanın backend altyapısı geliştirilmiş ve temel frontend sayfaları oluşturularak backend servisleriyle entegre edilmiştir. React ve Vite kullanılarak Dashboard, Haberler, Chatbot ve Profil sayfalarının temel arayüzleri hazırlanmıştır.
+
+Chatbot modülünde kullanıcıların konuşmalarını oturum bazlı sürdürebilmesi amacıyla session_id yönetimi geliştirilmiştir. Konuşmalar ve mesajlar MongoDB üzerindeki conversations ve messages koleksiyonlarında saklanarak sohbet hafızası sisteme eklenmiştir. RAG tabanlı chatbot altyapısı bu hafıza sistemiyle birleştirilmiş ve kullanıcıların önceki mesajları dikkate alınarak yanıt üretilebilmesi sağlanmıştır.
+
+Kullanıcı ve asistan mesajlarının güvenliğini kontrol etmek amacıyla giriş ve çıkış guardrail mekanizmaları uygulanmıştır. Chatbot cevaplarının frontend üzerinde daha okunabilir gösterilebilmesi için Markdown desteği ve yazı yazma animasyonu eklenmiştir.
+
+Finansal veri tarafında yfinance kullanılarak anlık hisse fiyatı ve tarihsel OHLCV verilerini döndüren endpoint'ler geliştirilmiştir. Finnhub API entegrasyonu ile genel piyasa haberleri ve şirket bazlı haberler sisteme dahil edilmiştir. Frontend tarafında oluşturulan merkezi api.js servis katmanı üzerinden chatbot, piyasa fiyatları, tarihsel veriler ve haber servislerine erişim sağlanmıştır.
+
+Dashboard sayfasında anlık hisse fiyatlarını gösteren kartlar oluşturulmuş, Haberler sayfası gerçek API verileriyle çalışacak şekilde geliştirilmiş ve haberler için kategori filtreleme özelliği eklenmiştir. Profil sayfasının temel arayüzü hazırlanmış ancak kullanıcı kimlik doğrulama sistemi henüz tamamlanmadığı için profil verileri geçici olarak statik tutulmuştur.
+
+Sprint sonunda temel frontend–backend entegrasyonu, sohbet hafızası ve finansal veri servisleri tamamlanmıştır. Kullanıcı kimlik doğrulama sistemi, dinamik profil yönetimi ve sanal borsa simülasyonu ise Sprint 3 kapsamına aktarılmıştır.
+
+## Sprint 2 Retrospective
+
+İyi Yapılanlar
+
+* Temel frontend mimarisi başarıyla oluşturuldu.
+* Frontend ve backend arasındaki iletişim için merkezi API servis katmanı hazırlandı.
+* Chatbot için session_id tabanlı sohbet yönetimi uygulandı.
+* Konuşmalar ve mesajlar MongoDB üzerinde saklanarak sohbet hafızası tamamlandı.
+* RAG sistemi sohbet hafızasıyla entegre edildi.
+* Kullanıcı girdileri ve asistan çıktıları için guardrail kontrolleri eklendi.
+* Yfinance ile anlık ve tarihsel piyasa verileri sisteme entegre edildi.
+* Finnhub ile piyasa ve şirket haberleri uygulamaya dahil edildi.
+* Dashboard ve Haberler sayfaları gerçek API verileriyle çalışır hâle getirildi.
+
+Geliştirilebilecek Noktalar
+
+* Sabit olarak kullanılan demo kullanıcı bilgileri gerçek kullanıcı hesaplarıyla değiştirilecektir.
+* Profil sayfası MongoDB üzerindeki gerçek kullanıcı verileriyle eşleştirilecektir.
+* Kullanıcıların profil bilgilerini düzenleyebileceği form yapısı eklenecektir.
+* Borsa simülasyonu sayfası gerçek piyasa verileri ve sanal bakiye sistemiyle aktif hâle getirilecektir.
+* Sanal hisse alım-satım işlemleri ve kullanıcı portföyü için gerekli backend endpoint'leri geliştirilecektir.
+* Dashboard sayfasına kullanıcı portföy özeti ve kâr/zarar bilgileri eklenecektir.
+* Test coverage, global hata yönetimi, rate limiting ve deployment çalışmaları tamamlanacaktır.
+  
+
