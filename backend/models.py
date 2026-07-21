@@ -109,10 +109,13 @@ class MessageCreate(BaseModel):
     """
     /chat/ endpoint'ine istemciden gelen istek gövdesi.
     session_id yoksa backend yeni bir Conversation oluşturur.
+    file_base64 + file_mime_type dolu gelirse multimodal (görsel veya PDF) istek olarak işlenir.
     """
     user_id: str
-    session_id: Optional[UUID] = None  # None → yeni oturum başlat
+    session_id: Optional[UUID] = None
     message: str
+    file_base64: Optional[str] = None
+    file_mime_type: Optional[str] = None
 
 
 class ChatRequest(BaseModel):

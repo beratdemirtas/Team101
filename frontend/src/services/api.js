@@ -1,10 +1,16 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-export async function sendChatMessage(message, userId, sessionId = null) {
+export async function sendChatMessage(message, userId, sessionId = null, file_base64 = null, file_mime_type = null) {
   const response = await fetch(`${BASE_URL}/chat/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: userId, session_id: sessionId, message }),
+    body: JSON.stringify({
+      user_id: userId,
+      session_id: sessionId,
+      message,
+      file_base64,
+      file_mime_type,
+    }),
   });
 
   if (!response.ok) {

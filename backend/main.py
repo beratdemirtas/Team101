@@ -173,7 +173,7 @@ async def chat_endpoint(request: MessageCreate, db: DatabaseDep):
 
     history = await db_ops.get_conversation_history(db, session_id, limit=10)
 
-    real_reply = await ask_mentor(request.message, history)
+    real_reply = await ask_mentor(request.message, history, request.file_base64, request.file_mime_type)
 
     assistant_msg = ChatMessage(role="assistant", content=real_reply)
     await db_ops.save_message(db, conversation_id, session_id, request.user_id, assistant_msg)
