@@ -15,6 +15,7 @@ Kullanıcılar sanal bakiye ile borsa simülasyonu yaparak gerçek para riski ol
 
 Ürün, yatırım tavsiyesi sunmak yerine bilgilendirici ve yönlendirici bir yaklaşım benimseyerek finansal okuryazarlığın gelişmesine katkı sağlamayı hedeflemektedir.
 
+## Tanıtım Video Linki: https://www.youtube.com/watch?v=T70MF8e23BU
 ---
 
 ## 🌐 Canlı Demo
@@ -106,7 +107,7 @@ Sistem dört katmandan oluşur: kullanıcının tarayıcısında çalışan **Re
 | **Barındırma** | Render (API), Vercel (arayüz), Supabase (veritabanı) |
 
 > **Not:** Sprint 1 ve 2'de MongoDB Atlas ve ChromaDB kullanılmıştı. Sprint 3'te veri katmanı PostgreSQL'e, vektör deposu pgvector'e taşındı. Gerekçeler Sprint 3 bölümünde ayrıntılı anlatılmıştır.
-
+>**Not:** Geliştirme sırasında Gemini ve Claude üretken yapay zeka modellerinden yararlanılmıştır.
 ---
 
 ## Kurulum ve Çalıştırma
