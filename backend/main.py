@@ -1,12 +1,20 @@
 """
 main.py — Fin101 FastAPI Uygulaması
 
+Veri katmanı Supabase/Postgres (db_pg.py, asyncpg). MongoDB katmanı
+database.py içinde duruyor; geri dönmek gerekirse aşağıdaki iki import
+satırını `database` olarak değiştirmek yeterli.
+
 Endpoint'ler:
-  GET  /          → Sağlık kontrolü
-  POST /users/    → Kullanıcı kaydı
-  POST /chat/     → Sohbet (hafızalı, RAG destekli)
-  GET  /market/...→ Piyasa verileri
-  GET  /news/...  → Haber verileri
+  GET  /            → Sağlık kontrolü
+  POST /users/      → Kullanıcı kaydı (şifresiz; asıl kayıt /auth/register)
+  POST /chat/       → Sohbet (hafızalı, RAG destekli)
+  GET  /users/me    → Profil  ·  PUT /users/me → profil güncelleme
+  GET  /market/...  → Piyasa verileri
+  GET  /news/...    → Haber verileri
+
+Ayrıca router olarak: /auth/* (auth.py), /stocks /transactions /portfolio
+(simulation.py).
 """
 
 from contextlib import asynccontextmanager
@@ -14,14 +22,27 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, Security
+import asyncpg
+from fastapi import Depends, FastAPI, HTTPException, Request, Security
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordBearer
-from motor.motor_asyncio import AsyncIOMotorDatabase
 
-import database as db_ops
-from database import connect_db, close_db, get_database
+# Supabase/Postgres veri katmanı. MongoDB'ye dönmek gerekirse bu iki satırı
+# `import database as db_ops` / `from database import ...` haline getirmek yeterli.
+import db_pg as db_ops
+from db_pg import connect_db, close_db, get_database
+from config import (
+    ALLOWED_ORIGINS,
+    ALLOWED_ORIGIN_REGEX,
+    DATABASE_URL,
+    FINNHUB_API_KEY,
+    GEMINI_API_KEY,
+    GEMINI_EMBEDDING_MODEL,
+    GEMINI_MODEL,
+    fingerprint,
+)
 from graph import mentor_graph
 from models import (
     ChatMessage,
@@ -48,19 +69,45 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # CORS hataları dışarıdan "sunucu hiç başlık döndürmedi" olarak görünüyor;
+    # etkin değeri loglamak, sorunun ortam değişkeninde mi kodda mı olduğunu
+    # log'a bakarak ayırt etmeyi sağlıyor.
+    logger.info(
+        "CORS izinli origin listesi: %s | kalıp: %s",
+        ALLOWED_ORIGINS,
+        ALLOWED_ORIGIN_REGEX or "(yok)",
+    )
+
+    # Anahtarların parmak izi: değeri açığa çıkarmadan, paneldeki değerin
+    # sürece gerçekten ulaşıp ulaşmadığını ve beklenen uzunlukta olup
+    # olmadığını gösterir. Ortam değişkeni kaydetmek çalışan süreci
+    # değiştirmediği için "kaydettim ama hâlâ eski anahtar" durumu buradan
+    # tek bakışta anlaşılıyor.
+    logger.info(
+        "Anahtarlar → GEMINI: %s | FINNHUB: %s | DATABASE_URL: %s",
+        fingerprint(GEMINI_API_KEY),
+        fingerprint(FINNHUB_API_KEY),
+        "tanımlı" if DATABASE_URL else "TANIMSIZ",
+    )
+    logger.info(
+        "Modeller → sohbet: %s | embedding: %s",
+        GEMINI_MODEL,
+        GEMINI_EMBEDDING_MODEL,
+    )
+
     # Uygulama başlarken
-    logger.info("MongoDB bağlantısı kuruluyor...")
+    logger.info("Postgres bağlantı havuzu kuruluyor...")
     await connect_db()
-    
+
     # Zamanlayıcıyı başlat
     logger.info("Bildirim zamanlayıcısı başlatılıyor...")
     telegram_bot.start_scheduler(get_database())
-    
+
     yield
     # Uygulama kapanırken
     logger.info("Bildirim zamanlayıcısı durduruluyor...")
     telegram_bot.stop_scheduler()
-    logger.info("MongoDB bağlantısı kapatılıyor...")
+    logger.info("Postgres bağlantı havuzu kapatılıyor...")
     await close_db()
 
 
@@ -75,9 +122,36 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+@app.middleware("http")
+async def catch_unhandled_errors(request: Request, call_next):
+    """
+    Yakalanmayan istisnaları normal bir 500 yanıtına çevirir.
+
+    Starlette'te yakalanmayan istisna CORS middleware'inin dışında işleniyor,
+    yani çıplak 500 yanıtına Access-Control-Allow-Origin başlığı eklenmiyor.
+    Tarayıcı da bunu "CORS policy" hatası olarak gösteriyor ve gerçek durum
+    kodu istemciye hiç ulaşmıyor — her sunucu hatası CORS sorunu gibi görünüyor.
+    Burada yakalamak, yanıtın aşağıdaki CORS katmanından geçmesini sağlıyor.
+
+    NOT: Bu middleware CORS'tan ÖNCE eklenmeli. Starlette son eklenen
+    middleware'i en dışa koyuyor; CORS en dışta kalmazsa başlık yine eklenmez.
+    """
+    try:
+        return await call_next(request)
+    except Exception:
+        logger.exception(
+            "Yakalanmayan hata: %s %s", request.method, request.url.path
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,          # ALLOWED_ORIGINS ortam değişkeni
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -94,11 +168,11 @@ app.include_router(sim_module.router)
 # Dependency Injection — Veritabanı
 # ---------------------------------------------------------------------------
 
-def get_db() -> AsyncIOMotorDatabase:
+def get_db() -> asyncpg.Pool:
     return get_database()
 
 
-DatabaseDep = Annotated[AsyncIOMotorDatabase, Depends(get_db)]
+DatabaseDep = Annotated[asyncpg.Pool, Depends(get_db)]
 
 
 # ===========================================================================
@@ -228,27 +302,18 @@ async def get_me(current_user: CurrentUser):
 
 @app.put("/users/me", response_model=UserResponse, tags=["Kullanıcılar"])
 async def update_me(body: UserUpdateRequest, db: DatabaseDep, current_user: CurrentUser):
-    from bson import ObjectId
     from models import _utcnow
 
-    update_fields: dict = {"last_active_at": _utcnow()}
-    if body.name is not None:
-        update_fields["name"] = body.name
-    if body.risk_profile is not None:
-        update_fields["risk_profile"] = body.risk_profile
-    if body.interests is not None:
-        update_fields["interests"] = body.interests
-    if body.telegram_chat_id is not None:
-        update_fields["telegram_chat_id"] = body.telegram_chat_id
-    if body.briefing_time is not None:
-        update_fields["briefing_time"] = body.briefing_time
+    # exclude_unset: istekte hiç gönderilmeyen alanlar güncellenmez.
+    # telegram_chat_id'nin bilinçli olarak null'a çekilebilmesi için
+    # "None ise atla" mantığı kullanılmıyor.
+    update_fields: dict = body.model_dump(exclude_unset=True)
+    update_fields["last_active_at"] = _utcnow()
 
-    await db["users"].update_one(
-        {"_id": ObjectId(current_user["id"])},
-        {"$set": update_fields},
-    )
+    updated_doc = await db_ops.update_user(db, current_user["id"], update_fields)
+    if not updated_doc:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
 
-    updated_doc = await db_ops.get_user_by_id(db, current_user["id"])
     return UserResponse(**updated_doc)
 
 
@@ -256,29 +321,46 @@ async def update_me(body: UserUpdateRequest, db: DatabaseDep, current_user: Curr
 # MARKET VE HABER ENDPOINT'LERİ (Takım Arkadaşının Kodları)
 # ---------------------------------------------------------------------------
 
+# Dış sağlayıcı (Yahoo Finance / Finnhub) hatalarında 502 dönülüyor: sorun
+# istemcinin isteğinde değil, yukarı akış servisinde. Sebep detail alanında
+# taşınıyor, böylece teşhis için sunucu logu okumak gerekmiyor.
 @app.get("/market/history/{ticker}", tags=["Piyasa Verileri"])
 async def stock_history(ticker: str, start: str, end: str):
     # yfinance senkron çalışır; event loop'u kilitlememesi için threadpool'a atılır.
-    data = await run_in_threadpool(market.get_stock_history, ticker, start, end)
+    try:
+        data = await run_in_threadpool(market.get_stock_history, ticker, start, end)
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"ticker": ticker, "data": data}
 
 
 @app.get("/market/price/{ticker}", tags=["Piyasa Verileri"])
 async def stock_price(ticker: str):
-    price = await run_in_threadpool(market.get_current_price, ticker)
-    return price
+    try:
+        return await run_in_threadpool(market.get_current_price, ticker)
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.get("/news/company/{symbol}", tags=["Haberler"])
 async def company_news(symbol: str, from_date: str, to_date: str):
     # finnhub-python da senkron; aynı sebeple threadpool'a atılır.
-    articles = await run_in_threadpool(news.get_company_news, symbol, from_date, to_date)
+    try:
+        articles = await run_in_threadpool(
+            news.get_company_news, symbol, from_date, to_date
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return {"symbol": symbol, "articles": articles}
 
 
 @app.get("/news/market", tags=["Haberler"])
 async def market_news(category: str = "general"):
-    articles = await run_in_threadpool(news.get_market_news, category)
+    try:
+        articles = await run_in_threadpool(news.get_market_news, category)
+    except ValueError as exc:
+        # Anahtar eksikse yapılandırma sorunu: 503 + net mesaj.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return {"category": category, "articles": articles}
 
 

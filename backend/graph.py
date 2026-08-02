@@ -2,6 +2,7 @@ import os
 import logging
 from typing import Annotated, TypedDict
 
+from fastapi.concurrency import run_in_threadpool
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
@@ -73,13 +74,53 @@ def supervisor_node(state: AgentState) -> AgentState:
     return {**state, "route": route}
 
 
+async def _retrieve_context(query: str, k: int) -> str:
+    """
+    RAG bağlamını event loop'u bloke etmeden getirir.
+
+    Embedding artık yerel model yerine Google API'sinden alındığı için arama
+    CPU değil ağ beklemesi anlamına geliyor; doğrudan çağrılırsa tek worker'da
+    eşzamanlı istekleri sıraya sokar. Bu yüzden threadpool'a atılıyor.
+
+    `asimilarity_search` KULLANILAMAZ: rag.py vektör deposunu senkron modda
+    kuruyor (PGVector'ün async_mode varsayılanı False) ve langchain_postgres
+    bu durumda async metodlarda "Attempting to use an async method in when
+    sync mode is turned on" hatası fırlatıyor. Deponun tamamını async moda
+    almak indeksleme tarafını (add_documents, similarity_search) bozardı;
+    ikisi aynı nesnede karışamıyor.
+
+    RAG bir iyileştirme, zorunluluk değil: vektör deposu erişilemezse
+    (embedding kotası dolmuş, Postgres geçici olarak yanıt vermiyor, koleksiyon
+    henüz kurulmamış) sohbetin tamamen çökmesi yerine belgesiz devam ediliyor.
+    Model kendi bilgisiyle yanıt veriyor, yalnızca kaynak dayanağı zayıflıyor.
+    Hata loglanıyor, yani sessizce kaybolmuyor.
+    """
+    try:
+        vector_store = await run_in_threadpool(_get_vector_store)
+        docs = await run_in_threadpool(vector_store.similarity_search, query, k=k)
+    except Exception as exc:                              # noqa: BLE001
+        logger.warning(
+            "RAG bağlamı alınamadı, belgesiz devam ediliyor: %s: %s",
+            type(exc).__name__, exc,
+        )
+        return ""
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
+def _context_block(context: str) -> str:
+    """Bağlam boşsa başlığı hiç yazma.
+
+    Boş bir "Bağlam:" başlığı modele "kaynak arandı ve bulunamadı" izlenimi
+    veriyor ve yanıtı gereksizce temkinli hale getiriyor. Bağlam yoksa
+    bölümü tamamen atlamak daha doğru.
+    """
+    return f"Bağlam:\n{context}\n\n" if context.strip() else ""
+
+
 async def analyst_node(state: AgentState) -> AgentState:
     llm = _get_llm()
 
-    vector_store = _get_vector_store()
-    retriever = vector_store.as_retriever(search_kwargs={"k": 3})
-    relevant_docs = retriever.invoke(state["query"])
-    context = "\n\n".join(doc.page_content for doc in relevant_docs)
+    context = await _retrieve_context(state["query"], k=3)
 
     messages: list = [SystemMessage(content=ANALYST_SYSTEM_PROMPT)]
 
@@ -89,7 +130,7 @@ async def analyst_node(state: AgentState) -> AgentState:
         elif turn.get("role") == "assistant":
             messages.append(AIMessage(content=turn["content"]))
 
-    final_text = f"Bağlam:\n{context}\n\nSoru: {state['query']}"
+    final_text = f"{_context_block(context)}Soru: {state['query']}"
     file_block = _build_file_block(state["file_base64"], state["file_mime_type"])
     messages.append(HumanMessage(content=[
         {"type": "text", "text": final_text},
@@ -109,10 +150,7 @@ async def mentor_node(state: AgentState) -> AgentState:
     if not input_check.allowed:
         return {**state, "answer": INPUT_REFUSAL_MESSAGE}
 
-    vector_store = _get_vector_store()
-    retriever = vector_store.as_retriever(search_kwargs={"k": 4})
-    relevant_docs = retriever.invoke(state["query"])
-    context = "\n\n".join(doc.page_content for doc in relevant_docs)
+    context = await _retrieve_context(state["query"], k=4)
 
     messages: list = [SystemMessage(content=MENTOR_SYSTEM_PROMPT)]
 
@@ -136,7 +174,9 @@ async def mentor_node(state: AgentState) -> AgentState:
     if user_info:
         user_info += "(Bu bilgileri kullanarak yanıtını kişiselleştir ve portföyünü yorumlamasını isterse değerlendir)\n"
 
-    messages.append(HumanMessage(content=f"Bağlam:\n{context}\n{user_info}\nSoru: {state['query']}"))
+    messages.append(HumanMessage(
+        content=f"{_context_block(context)}{user_info}\nSoru: {state['query']}"
+    ))
 
     response = await llm.ainvoke(messages)
     answer = extract_text(response.content)

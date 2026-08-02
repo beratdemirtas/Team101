@@ -4,24 +4,24 @@ from datetime import datetime
 import asyncio
 from typing import Optional
 
+import asyncpg
 import httpx
 import yfinance as yf
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi.concurrency import run_in_threadpool
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from database import get_user_portfolio
-from config import GEMINI_API_KEY, TELEGRAM_BOT_TOKEN as _BOT_TOKEN
+from db_pg import get_user_portfolio, get_users_for_briefing
+from config import GEMINI_API_KEY, GEMINI_MODEL, TELEGRAM_BOT_TOKEN as _BOT_TOKEN
 
 logger = logging.getLogger(__name__)
 
 TELEGRAM_BOT_TOKEN = _BOT_TOKEN or os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 scheduler = AsyncIOScheduler()
-_db: Optional[AsyncIOMotorDatabase] = None
+_db: Optional[asyncpg.Pool] = None
 
 MARKET_INDICES = {
     "BIST 100": "XU100.IS",
@@ -113,7 +113,7 @@ async def generate_morning_briefing(user: dict, portfolio: list) -> str:
         interests_str = ", ".join(user.get("interests", [])) or "Genel Piyasa"
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             google_api_key=GEMINI_API_KEY,
             temperature=0.5,
         )
@@ -157,20 +157,18 @@ async def briefing_cron_job():
     logger.info(f"Briefing Cron Job çalıştı: Zaman = {now_str}")
 
     try:
-        # briefing_time'ı şu anki saat olan ve telegram_chat_id'si bulunan kullanıcıları bul
-        cursor = _db["users"].find({
-            "briefing_time": now_str,
-            "telegram_chat_id": {"$exists": True, "$ne": None, "$ne": ""}
-        })
-        
-        users = await cursor.to_list(length=None)
-        
+        # briefing_time'ı şu anki saat olan ve geçerli telegram_chat_id'si olan
+        # kullanıcılar. Eski Mongo filtresinde aynı sözlükte iki kez "$ne"
+        # bulunduğu için `$ne: None` sessizce düşüyor ve chat_id'si NULL olan
+        # kullanıcılar da bu döngüye giriyordu.
+        users = await get_users_for_briefing(_db, now_str)
+
         if not users:
             logger.info("Bu dakikada bülten gönderilecek kullanıcı bulunamadı.")
             return
 
         for user in users:
-            user_id = str(user["_id"])
+            user_id = user["id"]
             chat_id = user["telegram_chat_id"]
             
             # Portföyü çek
@@ -189,7 +187,7 @@ async def briefing_cron_job():
         logger.error(f"briefing_cron_job sırasında hata: {e}")
 
 
-def start_scheduler(db: AsyncIOMotorDatabase):
+def start_scheduler(db: asyncpg.Pool):
     """
     Zamanlayıcıyı başlatır ve her dakika çalışacak şekilde cron job ekler.
     """
