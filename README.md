@@ -15,7 +15,7 @@ Kullanıcılar sanal bakiye ile borsa simülasyonu yaparak gerçek para riski ol
 
 Ürün, yatırım tavsiyesi sunmak yerine bilgilendirici ve yönlendirici bir yaklaşım benimseyerek finansal okuryazarlığın gelişmesine katkı sağlamayı hedeflemektedir.
 
-## Tanıtım Video Linki: https://www.youtube.com/watch?v=T70MF8e23BU
+Tanıtım Video Linki: https://www.youtube.com/watch?v=T70MF8e23BU
 ---
 
 ## 🌐 Canlı Demo
